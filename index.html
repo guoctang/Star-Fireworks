@@ -125,10 +125,10 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 0.75em;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
 
-        .settings-panel.active ~ .settings-toggle {
+        .settings.panel-open .settings-toggle {
             display: none;
         }
 
@@ -248,7 +248,7 @@
 
 
         <div class="tips">
-            💡 连击屏幕，有更多烟花哦 🧨<br>
+            连击屏幕，有更多烟花哦~<br>
             分享一下，接力快乐 🩷
         </div>
     </div>
@@ -649,7 +649,9 @@
         // 设置面板切换
         function toggleSettings() {
             const panel = document.getElementById('settingsPanel');
+            const settings = document.querySelector('.settings');
             panel.classList.toggle('active');
+            settings.classList.toggle('panel-open');
         }
 
         // 自动发射
