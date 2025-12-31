@@ -92,10 +92,16 @@
         }
 
         .tips {
-            margin-top: 30px;
+            position: fixed;
+            bottom: 60px;
+            left: 0;
+            right: 0;
             font-size: 0.9em;
             animation: bounce 2s ease-in-out infinite;
             opacity: 0;
+            text-align: center;
+            z-index: 2;
+            width: 100%;
         }
 
         @keyframes bounce {
@@ -122,15 +128,44 @@
             transition: background 0.3s;
         }
 
+        .settings-panel.active ~ .settings-toggle {
+            display: none;
+        }
+
+        .close-panel {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.75em;
+            transition: background 0.3s;
+            display: none;
+        }
+
+        .settings-panel.active .close-panel {
+            display: block;
+        }
+
+        .close-panel:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         .settings-panel {
             display: none;
             margin-top: 10px;
             color: white;
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
+            padding-top: 40px;
             border-radius: 10px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
         }
 
         .settings-panel.active {
@@ -221,6 +256,7 @@
     <div class="settings">
         <button class="settings-toggle" onclick="toggleSettings()">⚙️ 设置</button>
         <div class="settings-panel" id="settingsPanel">
+            <button class="close-panel" onclick="toggleSettings()">❌ 关闭</button>
             <div class="setting-item">
                 <label>烟花大小:</label>
                 <input type="range" id="sizeRange" min="50" max="150" value="100">
@@ -312,6 +348,9 @@
                 };
                 this.gravity = 0.08;
                 this.trail = [];
+                
+                // 播放发射音效
+                playLaunchSound();
             }
 
             update() {
@@ -462,8 +501,40 @@
         let fireworks = [];
         let autoLaunchInterval = null;
 
-        // 创建烟花爆炸音效（模拟真实烟花的声音）
+        // 创建音频上下文
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 创建发射音效
+        function playLaunchSound() {
+            if (!document.getElementById('soundToggle').checked) return;
+            
+            const now = audioContext.currentTime;
+            
+            // 发射时的"唷~"声
+            const whoosh = audioContext.createOscillator();
+            const whooshGain = audioContext.createGain();
+            const whooshFilter = audioContext.createBiquadFilter();
+            
+            whoosh.type = 'sawtooth';
+            whoosh.frequency.setValueAtTime(100, now);
+            whoosh.frequency.exponentialRampToValueAtTime(800, now + 0.4);
+            
+            whooshFilter.type = 'bandpass';
+            whooshFilter.frequency.setValueAtTime(200, now);
+            whooshFilter.frequency.exponentialRampToValueAtTime(1000, now + 0.4);
+            whooshFilter.Q.value = 2;
+            
+            whooshGain.gain.setValueAtTime(0.15, now);
+            whooshGain.gain.linearRampToValueAtTime(0.25, now + 0.2);
+            whooshGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            
+            whoosh.connect(whooshFilter);
+            whooshFilter.connect(whooshGain);
+            whooshGain.connect(audioContext.destination);
+            
+            whoosh.start(now);
+            whoosh.stop(now + 0.4);
+        }
         
         function playExplosionSound() {
             if (!document.getElementById('soundToggle').checked) return;
@@ -478,7 +549,7 @@
             pop1.frequency.setValueAtTime(200, now);
             pop1.frequency.exponentialRampToValueAtTime(80, now + 0.05);
             
-            pop1Gain.gain.setValueAtTime(0.7, now);
+            pop1Gain.gain.setValueAtTime(0.9, now);
             pop1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
             
             pop1.connect(pop1Gain);
@@ -500,7 +571,7 @@
             crackFilter.frequency.value = 1500;
             crackFilter.Q.value = 2;
             
-            crackGain.gain.setValueAtTime(0.5, now + 0.01);
+            crackGain.gain.setValueAtTime(0.7, now + 0.01);
             crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
             
             crack.connect(crackFilter);
@@ -520,7 +591,7 @@
                 const envelope = Math.exp(-t * 2);
                 // 生成间歇性的噪音（模拟火花粒子）
                 const noise = Math.random() < 0.3 ? (Math.random() * 2 - 1) : 0;
-                data[i] = noise * envelope * 0.6;
+                data[i] = noise * envelope * 0.75;
             }
             
             const sparkle = audioContext.createBufferSource();
@@ -531,7 +602,7 @@
             sparkleFilter.frequency.value = 3000;
             
             const sparkleGain = audioContext.createGain();
-            sparkleGain.gain.setValueAtTime(0.35, now + 0.05);
+            sparkleGain.gain.setValueAtTime(0.45, now + 0.05);
             sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 1.4);
             
             sparkle.connect(sparkleFilter);
@@ -578,9 +649,7 @@
         // 设置面板切换
         function toggleSettings() {
             const panel = document.getElementById('settingsPanel');
-            const button = document.querySelector('.settings-toggle');
-            const isActive = panel.classList.toggle('active');
-            button.textContent = isActive ? '❌ 关闭面板' : '⚙️ 设置';
+            panel.classList.toggle('active');
         }
 
         // 自动发射
