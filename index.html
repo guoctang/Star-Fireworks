@@ -48,6 +48,7 @@
         h1 {
             font-size: 3em;
             margin-bottom: 30px;
+            margin-top: 20px;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
             animation: glow 2s ease-in-out infinite alternate;
             opacity: 0;
@@ -59,26 +60,22 @@
         }
 
         .countdown {
-            font-size: 2em;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            font-size: 1.2em;
+            margin-bottom: 20px;
             opacity: 0;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .countdown-title {
-            font-size: 0.5em;
-            margin-bottom: 10px;
+            font-size: 1em;
+            margin-bottom: 5px;
             opacity: 0.8;
         }
 
         .countdown-numbers {
-            font-size: 1.5em;
+            font-size: 1.3em;
             font-weight: bold;
-            letter-spacing: 5px;
+            letter-spacing: 3px;
         }
 
         .blessings {
@@ -193,12 +190,12 @@
     <canvas id="fireworksCanvas"></canvas>
     
     <div class="container">
-        <h1>✨ 2026元旦快乐 ✨</h1>
-        
         <div class="countdown">
             <div class="countdown-title">距离新年还有 💓</div>
             <div class="countdown-numbers" id="countdown">00:00:00</div>
         </div>
+        
+        <h1>✨ 2026元旦快乐 ✨</h1>
 
         <div class="blessings">
             祝你：<br>
@@ -296,9 +293,79 @@
         // 烟花类
         class Firework {
             constructor(x, y) {
+                this.targetX = x;
+                this.targetY = y;
                 this.x = x;
-                this.y = y;
+                this.y = canvas.height; // 从底部开始
                 this.particles = [];
+                this.launched = false;
+                this.exploded = false;
+                this.velocity = {
+                    x: 0,
+                    y: -8 - Math.random() * 4 // 向上发射的速度
+                };
+                this.gravity = 0.08;
+                this.trail = [];
+            }
+
+            update() {
+                if (!this.exploded) {
+                    // 发射阶段
+                    this.velocity.y += this.gravity;
+                    this.y += this.velocity.y;
+                    this.x += this.velocity.x;
+                    
+                    // 添加尾迹
+                    this.trail.push({ x: this.x, y: this.y, alpha: 1 });
+                    if (this.trail.length > 15) {
+                        this.trail.shift();
+                    }
+                    
+                    // 更新尾迹透明度
+                    this.trail.forEach((t, index) => {
+                        t.alpha = (index + 1) / this.trail.length * 0.5;
+                    });
+                    
+                    // 到达目标高度或开始下落时爆炸
+                    if (this.y <= this.targetY || this.velocity.y >= 0) {
+                        this.explode();
+                    }
+                } else {
+                    // 爆炸阶段
+                    this.particles.forEach(particle => particle.update());
+                    this.particles = this.particles.filter(particle => particle.alpha > 0);
+                }
+            }
+
+            draw() {
+                if (!this.exploded) {
+                    // 绘制尾迹
+                    this.trail.forEach(t => {
+                        ctx.save();
+                        ctx.globalAlpha = t.alpha;
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(t.x, t.y, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    });
+                    
+                    // 绘制火箭
+                    ctx.save();
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } else {
+                    this.particles.forEach(particle => particle.draw());
+                }
+            }
+
+            explode() {
+                this.exploded = true;
                 this.createParticles();
             }
 
@@ -326,16 +393,63 @@
             }
 
             update() {
-                this.particles.forEach(particle => particle.update());
-                this.particles = this.particles.filter(particle => particle.alpha > 0);
+                if (!this.exploded) {
+                    // 发射阶段
+                    this.velocity.y += this.gravity;
+                    this.y += this.velocity.y;
+                    this.x += this.velocity.x;
+                    
+                    // 添加尾迹
+                    this.trail.push({ x: this.x, y: this.y, alpha: 1 });
+                    if (this.trail.length > 15) {
+                        this.trail.shift();
+                    }
+                    
+                    // 更新尾迹透明度
+                    this.trail.forEach((t, index) => {
+                        t.alpha = (index + 1) / this.trail.length * 0.5;
+                    });
+                    
+                    // 到达目标高度或开始下落时爆炸
+                    if (this.y <= this.targetY || this.velocity.y >= 0) {
+                        this.explode();
+                    }
+                } else {
+                    // 爆炸阶段
+                    this.particles.forEach(particle => particle.update());
+                    this.particles = this.particles.filter(particle => particle.alpha > 0);
+                }
             }
 
             draw() {
-                this.particles.forEach(particle => particle.draw());
+                if (!this.exploded) {
+                    // 绘制尾迹
+                    this.trail.forEach(t => {
+                        ctx.save();
+                        ctx.globalAlpha = t.alpha;
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(t.x, t.y, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    });
+                    
+                    // 绘制火箭
+                    ctx.save();
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } else {
+                    this.particles.forEach(particle => particle.draw());
+                }
             }
 
             isDone() {
-                return this.particles.length === 0;
+                return this.exploded && this.particles.length === 0;
             }
         }
 
@@ -443,8 +557,14 @@
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-            document.getElementById('countdown').textContent = 
-                `${days}天 ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            // 如果是0天，只显示时分秒
+            if (days === 0) {
+                document.getElementById('countdown').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                document.getElementById('countdown').textContent = 
+                    `${days}天 ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
         }
 
         // 打字机效果
