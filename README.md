@@ -1,10 +1,14 @@
-# ✨ 星映焰火 Star Firework
+# ✨ 星映焰火 Star Fireworks
 
 > 🎆 Interactive Fireworks Celebration for New Year 2026
 >
 > 一个精美的互动式烟花庆祝页面，为2026年元旦打造的视听盛宴。
 
 ![Release](https://img.shields.io/badge/Release-1.0-blue.svg)
+
+## 🔗 在线演示
+
+- **[戳我体验](https://fireworks.chenyande.com/)** - 直接在浏览器中打开
 
 ## 🎆 项目特色
 
@@ -39,7 +43,16 @@
 1. 下载或克隆本项目
 2. 在浏览器中打开 `index.html` 即可
 
-### 方式二：本地服务器
+### 方式二：部署到 Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fguoctang%2FStar-Fireworks)
+
+### 方式三：部署到 Netlify
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https%3A%2F%2Fgithub.com%2Fguoctang%2FStar-Fireworks)
+
+
+### 方式四：本地服务器
 ```bash
 # 使用 Python 启动
 python -m http.server 8080
