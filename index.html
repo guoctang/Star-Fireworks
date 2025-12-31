@@ -48,7 +48,6 @@
         h1 {
             font-size: 3em;
             margin-bottom: 30px;
-            margin-top: 20px;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
             animation: glow 2s ease-in-out infinite alternate;
             opacity: 0;
@@ -62,6 +61,7 @@
         .countdown {
             font-size: 1.2em;
             margin-bottom: 20px;
+            margin-top: 20px;
             opacity: 0;
             color: rgba(255, 255, 255, 0.9);
         }
@@ -104,12 +104,12 @@
 
         .settings {
             position: fixed;
-            bottom: 15px;
-            right: 15px;
+            bottom: 20px;
+            right: 20px;
             z-index: 3;
             background: rgba(255, 255, 255, 0.1);
-            padding: 8px;
-            border-radius: 8px;
+            padding: 15px;
+            border-radius: 10px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
@@ -132,7 +132,7 @@
 
         .settings-panel {
             display: none;
-            margin-top: 8px;
+            margin-top: 10px;
             color: white;
         }
 
@@ -141,11 +141,11 @@
         }
 
         .setting-item {
-            margin: 6px 0;
+            margin: 10px 0;
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.75em;
+            gap: 10px;
+            font-size: 0.9em;
             color: white;
         }
 
@@ -155,12 +155,11 @@
 
         .setting-item input[type="range"] {
             flex: 2;
-            height: 4px;
         }
 
         .setting-item input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
         }
 
@@ -200,12 +199,12 @@
     <canvas id="fireworksCanvas"></canvas>
     
     <div class="container">
+        <h1>✨ 2026元旦快乐 ✨</h1>
+        
         <div class="countdown">
             <div class="countdown-title">距离新年还有 💓</div>
             <div class="countdown-numbers" id="countdown">00:00:00</div>
         </div>
-        
-        <h1>✨ 2026元旦快乐 ✨</h1>
 
         <div class="blessings">
             祝你：<br>
@@ -466,7 +465,7 @@
         let fireworks = [];
         let autoLaunchInterval = null;
 
-        // 创建爆炸音效（使用 Web Audio API 生成更逼真的烟花爆炸声）
+       // 创建爆炸音效（模拟真实烟花的"嗖~啪"声）
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
         function playExplosionSound() {
@@ -474,75 +473,75 @@
             
             const now = audioContext.currentTime;
             
-            // 创建白噪音源（模拟爆炸的噪音）
-            const bufferSize = audioContext.sampleRate * 0.5;
+            // 第一阶段："啪"的爆裂声（快速衰减的高频脉冲）
+            const pop = audioContext.createOscillator();
+            const popGain = audioContext.createGain();
+            const popFilter = audioContext.createBiquadFilter();
+            
+            pop.type = 'square';
+            pop.frequency.setValueAtTime(1500, now);
+            pop.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+            
+            popFilter.type = 'highpass';
+            popFilter.frequency.value = 500;
+            
+            popGain.gain.setValueAtTime(0.4, now);
+            popGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            
+            pop.connect(popFilter);
+            popFilter.connect(popGain);
+            popGain.connect(audioContext.destination);
+            
+            pop.start(now);
+            pop.stop(now + 0.08);
+            
+            // 第二阶段："呲呲"的火花散开声（白噪音）
+            const bufferSize = audioContext.sampleRate * 1.2;
             const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
             const data = buffer.getChannelData(0);
+            
+            // 生成带有密度变化的噪音（模拟火花四散）
             for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
+                const density = Math.exp(-i / (audioContext.sampleRate * 0.3));
+                data[i] = (Math.random() * 2 - 1) * density;
             }
             
-            const whiteNoise = audioContext.createBufferSource();
-            whiteNoise.buffer = buffer;
+            const sparkle = audioContext.createBufferSource();
+            sparkle.buffer = buffer;
             
-            // 创建低频震动（模拟爆炸的冲击波）
-            const bass = audioContext.createOscillator();
-            bass.type = 'sine';
-            bass.frequency.setValueAtTime(80, now);
-            bass.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+            const sparkleFilter = audioContext.createBiquadFilter();
+            sparkleFilter.type = 'highpass';
+            sparkleFilter.frequency.value = 2000;
+            sparkleFilter.Q.value = 1;
             
-            // 创建高频爆裂声
-            const crackle = audioContext.createOscillator();
-            crackle.type = 'square';
-            crackle.frequency.setValueAtTime(1000, now);
-            crackle.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+            const sparkleGain = audioContext.createGain();
+            sparkleGain.gain.setValueAtTime(0.25, now + 0.02);
+            sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
             
-            // 创建滤波器
-            const filter = audioContext.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1500, now);
-            filter.frequency.exponentialRampToValueAtTime(200, now + 0.4);
-            filter.Q.value = 1;
+            sparkle.connect(sparkleFilter);
+            sparkleFilter.connect(sparkleGain);
+            sparkleGain.connect(audioContext.destination);
             
-            // 创建增益节点控制音量包络
-            const noiseGain = audioContext.createGain();
-            noiseGain.gain.setValueAtTime(0.4, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            sparkle.start(now + 0.02);
+            sparkle.stop(now + 1.2);
             
-            const bassGain = audioContext.createGain();
-            bassGain.gain.setValueAtTime(0.5, now);
-            bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            // 第三阶段：轻微的共鸣/回响
+            const echo = audioContext.createOscillator();
+            const echoGain = audioContext.createGain();
             
-            const crackleGain = audioContext.createGain();
-            crackleGain.gain.setValueAtTime(0.15, now);
-            crackleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            echo.type = 'sine';
+            echo.frequency.setValueAtTime(400, now + 0.05);
+            echo.frequency.exponentialRampToValueAtTime(100, now + 0.5);
             
-            // 主增益控制整体音量
-            const masterGain = audioContext.createGain();
-            masterGain.gain.value = 0.3;
+            echoGain.gain.setValueAtTime(0, now + 0.05);
+            echoGain.gain.linearRampToValueAtTime(0.08, now + 0.1);
+            echoGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
             
-            // 连接音频节点
-            whiteNoise.connect(filter);
-            filter.connect(noiseGain);
-            noiseGain.connect(masterGain);
+            echo.connect(echoGain);
+            echoGain.connect(audioContext.destination);
             
-            bass.connect(bassGain);
-            bassGain.connect(masterGain);
-            
-            crackle.connect(crackleGain);
-            crackleGain.connect(masterGain);
-            
-            masterGain.connect(audioContext.destination);
-            
-            // 播放音效
-            whiteNoise.start(now);
-            whiteNoise.stop(now + 0.4);
-            
-            bass.start(now);
-            bass.stop(now + 0.5);
-            
-            crackle.start(now);
-            crackle.stop(now + 0.15);
+            echo.start(now + 0.05);
+            echo.stop(now + 0.6);
         }
 
         function launchFirework(x, y) {
