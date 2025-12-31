@@ -43,6 +43,7 @@
             padding: 20px;
             max-width: 600px;
             width: 90%;
+            margin-top: -15vh;
         }
 
         h1 {
@@ -465,7 +466,7 @@
         let fireworks = [];
         let autoLaunchInterval = null;
 
-       // 创建爆炸音效（模拟真实烟花的"嗖~啪"声）
+        // 创建烟花爆炸音效（模拟真实烟花的声音）
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
         function playExplosionSound() {
@@ -473,37 +474,57 @@
             
             const now = audioContext.currentTime;
             
-            // 第一阶段："啪"的爆裂声（快速衰减的高频脉冲）
-            const pop = audioContext.createOscillator();
-            const popGain = audioContext.createGain();
-            const popFilter = audioContext.createBiquadFilter();
+            // 第一阶段：短促的"啪"声
+            const pop1 = audioContext.createOscillator();
+            const pop1Gain = audioContext.createGain();
             
-            pop.type = 'square';
-            pop.frequency.setValueAtTime(1500, now);
-            pop.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+            pop1.type = 'sine';
+            pop1.frequency.setValueAtTime(200, now);
+            pop1.frequency.exponentialRampToValueAtTime(80, now + 0.05);
             
-            popFilter.type = 'highpass';
-            popFilter.frequency.value = 500;
+            pop1Gain.gain.setValueAtTime(0.5, now);
+            pop1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
             
-            popGain.gain.setValueAtTime(0.4, now);
-            popGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            pop1.connect(pop1Gain);
+            pop1Gain.connect(audioContext.destination);
             
-            pop.connect(popFilter);
-            popFilter.connect(popGain);
-            popGain.connect(audioContext.destination);
+            pop1.start(now);
+            pop1.stop(now + 0.05);
             
-            pop.start(now);
-            pop.stop(now + 0.08);
+            // 第二阶段：稍微尖锐的爆裂声
+            const crack = audioContext.createOscillator();
+            const crackGain = audioContext.createGain();
+            const crackFilter = audioContext.createBiquadFilter();
             
-            // 第二阶段："呲呲"的火花散开声（白噪音）
-            const bufferSize = audioContext.sampleRate * 1.2;
+            crack.type = 'sawtooth';
+            crack.frequency.setValueAtTime(2000, now + 0.01);
+            crack.frequency.exponentialRampToValueAtTime(500, now + 0.1);
+            
+            crackFilter.type = 'bandpass';
+            crackFilter.frequency.value = 1500;
+            crackFilter.Q.value = 2;
+            
+            crackGain.gain.setValueAtTime(0.3, now + 0.01);
+            crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+            
+            crack.connect(crackFilter);
+            crackFilter.connect(crackGain);
+            crackGain.connect(audioContext.destination);
+            
+            crack.start(now + 0.01);
+            crack.stop(now + 0.12);
+            
+            // 第三阶段：轻薄的划过声（火花飞散）
+            const bufferSize = audioContext.sampleRate * 0.8;
             const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
             const data = buffer.getChannelData(0);
             
-            // 生成带有密度变化的噪音（模拟火花四散）
             for (let i = 0; i < bufferSize; i++) {
-                const density = Math.exp(-i / (audioContext.sampleRate * 0.3));
-                data[i] = (Math.random() * 2 - 1) * density;
+                const t = i / audioContext.sampleRate;
+                const envelope = Math.exp(-t * 3);
+                // 生成间歇性的噪音（模拟火花粒子）
+                const noise = Math.random() < 0.3 ? (Math.random() * 2 - 1) : 0;
+                data[i] = noise * envelope * 0.5;
             }
             
             const sparkle = audioContext.createBufferSource();
@@ -511,37 +532,18 @@
             
             const sparkleFilter = audioContext.createBiquadFilter();
             sparkleFilter.type = 'highpass';
-            sparkleFilter.frequency.value = 2000;
-            sparkleFilter.Q.value = 1;
+            sparkleFilter.frequency.value = 3000;
             
             const sparkleGain = audioContext.createGain();
-            sparkleGain.gain.setValueAtTime(0.25, now + 0.02);
-            sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+            sparkleGain.gain.setValueAtTime(0.2, now + 0.05);
+            sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
             
             sparkle.connect(sparkleFilter);
             sparkleFilter.connect(sparkleGain);
             sparkleGain.connect(audioContext.destination);
             
-            sparkle.start(now + 0.02);
-            sparkle.stop(now + 1.2);
-            
-            // 第三阶段：轻微的共鸣/回响
-            const echo = audioContext.createOscillator();
-            const echoGain = audioContext.createGain();
-            
-            echo.type = 'sine';
-            echo.frequency.setValueAtTime(400, now + 0.05);
-            echo.frequency.exponentialRampToValueAtTime(100, now + 0.5);
-            
-            echoGain.gain.setValueAtTime(0, now + 0.05);
-            echoGain.gain.linearRampToValueAtTime(0.08, now + 0.1);
-            echoGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-            
-            echo.connect(echoGain);
-            echoGain.connect(audioContext.destination);
-            
-            echo.start(now + 0.05);
-            echo.stop(now + 0.6);
+            sparkle.start(now + 0.05);
+            sparkle.stop(now + 0.9);
         }
 
         function launchFirework(x, y) {
@@ -579,7 +581,10 @@
 
         // 设置面板切换
         function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('active');
+            const panel = document.getElementById('settingsPanel');
+            const button = document.querySelector('.settings-toggle');
+            const isActive = panel.classList.toggle('active');
+            button.textContent = isActive ? '❌ 关闭面板' : '⚙️ 设置';
         }
 
         // 自动发射
@@ -644,7 +649,7 @@
                 countdown.style.opacity = '1';
             }, 1500);
             
-            // 祝福语打字效果
+            // 祝福语打字效果（延迟2秒）
             setTimeout(() => {
                 blessings.style.opacity = '1';
                 const text = '祝你：\n所期皆所念 所念皆所愿\n所愿皆所得 所得皆所盼\n唯愿烟花像星辰 祝你所愿皆成真 ✨';
@@ -678,7 +683,7 @@
                 }
                 
                 typeLine();
-            }, 2500);
+            }, 4500);
         }
 
         // 初始化
